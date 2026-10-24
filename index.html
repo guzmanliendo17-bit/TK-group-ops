@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#C8102E">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TK Ops CCS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>TK Ground Ops · CCS</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  :root {
+    --red:#C8102E; --red-dark:#A00D25; --red-deep:#6E0819;
+    --red-glow:rgba(200,16,46,0.14); --red-lt:#FFF0F2; --red-border:#F5C6CC;
+    --surface:#FFFFFF; --bg:#FAF8F8; --border:#EEE0E2; --border-lt:#F5EDEF;
+    --muted:#9A6872; --text:#1A0A0E; --wa:#25D366; --field:#FFFFFF;
+    --shadow-sm:0 1px 5px rgba(200,16,46,0.08); --shadow:0 4px 18px rgba(200,16,46,0.12);
+    --r:14px; --r-sm:9px;
+    /* alias para el módulo de anuncios */
+    --panel:var(--surface); --ink:var(--text); --ink-soft:var(--muted); --line:var(--border);
+    --board:#141414; --board-amber:#FFB300;
+  }
+  @media screen and (prefers-color-scheme:dark) {
+    :root {
+      color-scheme:dark;
+      --bg:#120A0C; --surface:#1D1215; --border:#3A262B; --border-lt:#2B1B1F;
+      --muted:#C79AA3; --text:#F6E9EB; --red-lt:#2E1419; --red-border:#5A2530;
+      --red-glow:rgba(200,16,46,0.3); --field:#150C0F;
+      --shadow-sm:0 1px 5px rgba(0,0,0,0.5); --shadow:0 4px 18px rgba(0,0,0,0.5);
+    }
+    input[type="text"], input[type="date"], input[type="time"], input.item-qty, input.item-note, .btn-secondary, .chip:not(.active) { background:var(--field); }
+    .chip { box-shadow:none; }
+    .item-label { color:#FF8A9B; }
+    .pcs-box input, .time-card input[type="time"] { color:#FFB3BE; }
+    .pcs-box input:focus { color:#FFFFFF; }
+    .preview-card { background:#0B141A; }
+    .preview-bubble { background:#202C33; color:#E9EDEF; }
+    .btn-copy { background:#202C33; color:#25D366; }
+  }
+
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'Outfit',sans-serif; color:var(--text); padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));
+    background-color:var(--bg);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M7 1L13 7L7 13L1 7Z' fill='%23C8102E' fill-opacity='0.035'/%3E%3C/svg%3E");
+  }
+
+  /* HEADER */
+  header { background:var(--red); position:sticky; top:0; z-index:100; box-shadow:0 2px 20px rgba(110,8,25,0.5); padding-top:env(safe-area-inset-top,0px); }
+  .header-main { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
+  .header-brand { display:flex; align-items:center; gap:11px; }
+  .tk-logo { width:38px; height:38px; background:white; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.18); }
+  .header-text h1 { font-size:15px; font-weight:900; color:white; letter-spacing:-0.2px; line-height:1.2; }
+  .header-text p { font-size:10px; color:rgba(255,255,255,0.55); letter-spacing:0.14em; text-transform:uppercase; font-weight:600; }
+  .header-pill { background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.35); border-radius:20px; padding:4px 13px; font-size:12px; font-weight:800; color:white; letter-spacing:0.08em; }
+  .fids-strip { background:var(--red-dark); border-top:1px solid rgba(255,255,255,0.1); padding:7px 16px; display:flex; overflow-x:auto; scrollbar-width:none; align-items:stretch; }
+  .fids-strip::-webkit-scrollbar { display:none; }
+  .fids-item { display:flex; flex-direction:column; gap:2px; padding:0 14px 0 0; flex-shrink:0; }
+  .fids-sep { width:1px; background:rgba(255,255,255,0.15); margin:0 14px 0 0; flex-shrink:0; }
+  .fids-label { font-size:9px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.45); }
+  .fids-value { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:white; }
+
+  /* NAV INFERIOR */
+  nav.tabs { position:fixed; bottom:0; left:0; right:0; z-index:90; display:flex; background:var(--surface); border-top:1px solid var(--border); padding-bottom:env(safe-area-inset-bottom,0px); box-shadow:0 -4px 18px rgba(0,0,0,0.08); }
+  nav.tabs button { flex:1; border:none; background:none; padding:9px 4px 8px; font-family:'Outfit',sans-serif; font-weight:700; font-size:11px; letter-spacing:.03em; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; position:relative; }
+  nav.tabs button .ti { font-size:20px; line-height:1.1; }
+  nav.tabs button.on { color:var(--red); }
+  nav.tabs button.on::before { content:''; position:absolute; top:0; left:25%; right:25%; height:3px; border-radius:0 0 3px 3px; background:var(--red); }
+
+  .view { display:none; }
+  .view.on { display:block; }
+
+  /* LAYOUT / CARD */
+  .container { max-width:520px; margin:14px auto; padding:0 14px; }
+  .card { background:var(--surface); border-radius:var(--r); border:1px solid var(--border-lt); border-left:3.5px solid var(--red); padding:16px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
+  .card-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .sec-num { width:24px; height:24px; border-radius:50%; background:var(--red); color:white; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sec-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.07em; flex:1; }
+  .sec-icon { font-size:16px; opacity:0.3; }
+
+  /* INPUTS */
+  .ig { margin-bottom:10px; } .ig:last-child { margin-bottom:0; }
+  label { display:block; font-size:10px; font-weight:700; color:var(--muted); margin-bottom:5px; letter-spacing:0.07em; text-transform:uppercase; }
+  input[type="text"], input[type="date"], input[type="time"] {
+    width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--r-sm);
+    font-size:14px; font-family:'Outfit',sans-serif; font-weight:500; background:white; color:var(--text);
+    transition:border-color .18s, box-shadow .18s, background .18s; -webkit-appearance:none; appearance:none;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, input[type="time"]:focus { outline:none; border-color:var(--red); background:var(--red-lt); box-shadow:0 0 0 3px var(--red-glow); }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .upper { text-transform:uppercase; }
+
+  /* PAX STRIP */
+  .pax-strip { background:linear-gradient(140deg,var(--red-deep) 0%,var(--red-dark) 60%,var(--red) 100%); border-radius:12px; display:flex; margin-bottom:14px; overflow:hidden; position:relative; box-shadow:0 4px 14px rgba(110,8,25,0.28); }
+  .pax-class { flex:1; padding:12px 8px 26px; text-align:center; }
+  .pax-class:not(:last-of-type) { border-right:1px solid rgba(255,255,255,0.1); }
+  .pax-class-label { font-size:9px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-bottom:6px; }
+  .pax-class-input { background:transparent !important; border:none !important; padding:0 !important; box-shadow:none !important; font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:700; color:white !important; text-align:center; width:100%; caret-color:#ffb3be; letter-spacing:-1px; }
+  .pax-class-input::placeholder { color:rgba(255,255,255,0.25); }
+  .pax-class-input:focus { outline:none; color:#ffd6dc !important; }
+  .pax-total { position:absolute; bottom:0; right:0; background:rgba(0,0,0,0.28); padding:3px 13px; border-radius:10px 0 0 0; font-size:11px; font-weight:800; color:white; letter-spacing:0.05em; }
+
+  /* PIEZAS / BULTOS */
+  .pcs-box { background:var(--red-lt); border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; margin-top:12px; }
+  .pcs-box input { font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; color:var(--red-deep); border:none; background:transparent; padding:2px 0; box-shadow:none; }
+  .pcs-box input:focus { background:transparent; box-shadow:none; color:var(--red); }
+
+  /* TIEMPOS */
+  .times-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .time-card { background:var(--red-lt); border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; }
+  .time-card label { margin-bottom:4px; }
+  .time-card input[type="time"] { font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600; color:var(--red-deep); border:none; background:transparent; padding:2px 0; border-radius:0; box-shadow:none; }
+  .time-card input[type="time"]:focus { box-shadow:none; background:transparent; border:none; color:var(--red); }
+
+  /* CHIPS */
+  .section-divider { display:flex; align-items:center; gap:8px; margin-bottom:13px; }
+  .section-divider-title { font-size:10px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; white-space:nowrap; }
+  .section-divider-line { flex:1; height:1px; background:var(--border-lt); }
+  .cat-block { margin-bottom:11px; } .cat-block:last-child { margin-bottom:0; }
+  .cat-header { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .cat-icon { font-size:13px; line-height:1; }
+  .cat-name { font-size:9.5px; font-weight:900; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; }
+  .cat-line { flex:1; height:1px; background:var(--border-lt); }
+  .cat-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:6px 12px 6px 9px; border-radius:20px; font-size:12.5px; font-weight:600; border:1.5px solid var(--border); background:white; color:var(--text); cursor:pointer; transition:all .14s; user-select:none; white-space:nowrap; font-family:'Outfit',sans-serif; box-shadow:0 1px 3px rgba(200,16,46,0.07); }
+  .chip .chip-ico { font-size:14px; line-height:1; }
+  .chip:active { transform:scale(0.91); }
+  .chip.active { background:var(--red); border-color:var(--red); color:white; box-shadow:0 2px 10px rgba(200,16,46,0.35); }
+  .chip-badge { display:none; min-width:16px; height:16px; background:white; color:var(--red); border-radius:8px; padding:0 4px; font-size:9px; font-weight:900; align-items:center; justify-content:center; margin-left:1px; }
+  .chip.active .chip-badge { display:flex; }
+  .selected-items { display:flex; flex-direction:column; gap:4px; margin-top:12px; }
+  .selected-row { display:flex; align-items:center; gap:5px; background:var(--red-lt); border:1.5px solid var(--red-border); border-radius:7px; padding:4px 8px; animation:slideIn .16s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+  .item-label { font-size:11px; font-weight:700; color:var(--red); min-width:58px; flex-shrink:0; }
+  input.item-qty { width:36px !important; padding:2px 4px !important; border:1px solid var(--red-border) !important; border-radius:5px; font-size:13px !important; font-weight:700 !important; text-align:center; background:white; flex-shrink:0; min-width:0; font-family:'JetBrains Mono',monospace !important; box-shadow:none !important; }
+  input.item-note { flex:1; min-width:0; padding:2px 7px !important; border:1px solid var(--red-border) !important; border-radius:5px; font-size:11.5px !important; background:white; box-shadow:none !important; }
+  input.item-qty:focus, input.item-note:focus { outline:none; border-color:var(--red) !important; }
+  .btn-deselect { background:transparent; border:none; color:var(--red); width:18px; height:18px; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; opacity:.45; line-height:1; }
+  .empty-hint { font-size:12px; color:#C8A0A8; text-align:center; padding:8px 0; font-style:italic; }
+  .step { width:26px; height:26px; border-radius:50%; border:1.5px solid var(--red-border); background:var(--field); color:var(--red); font-size:17px; font-weight:800; font-family:'Outfit',sans-serif; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; line-height:1; padding:0; transition:transform .1s, background .15s, color .15s; }
+  .step:active { transform:scale(0.85); background:var(--red); color:white; }
+
+  /* CATERING STRIP (reusa pax-strip) */
+  .meal-strip .pax-class { padding-bottom:26px; }
+
+  /* ACCIONES */
+  .actions { display:flex; flex-direction:column; gap:8px; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; border:none; border-radius:12px; font-family:'Outfit',sans-serif; font-weight:800; cursor:pointer; transition:transform .12s, filter .15s; -webkit-appearance:none; }
+  .btn:active { transform:scale(0.97); filter:brightness(0.93); }
+  @keyframes wa-pulse { 0%{box-shadow:0 4px 16px rgba(37,211,102,.28)} 50%{box-shadow:0 4px 24px rgba(37,211,102,.52),0 0 0 7px rgba(37,211,102,.09)} 100%{box-shadow:0 4px 16px rgba(37,211,102,.28)} }
+  .btn-wa { background:var(--wa); color:white; padding:16px; font-size:16px; animation:wa-pulse 2.8s ease-in-out infinite; }
+  .btn-generate { background:linear-gradient(135deg,var(--red-deep) 0%,var(--red-dark) 40%,var(--red) 100%); color:white; padding:13px; font-size:14px; box-shadow:0 3px 14px rgba(200,16,46,.35); }
+  .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .btn-secondary { background:white; border:1.5px solid var(--border); color:var(--muted); padding:12px; font-size:13px; font-weight:700; }
+
+  /* PREVIEW */
+  .pv-wrap { display:none; margin-top:10px; }
+  .preview-card { background:#E5DDD5; border-radius:14px; overflow:hidden; box-shadow:var(--shadow); }
+  .preview-hdr { background:#075E54; padding:10px 14px; display:flex; align-items:center; gap:10px; }
+  .preview-avatar { width:32px; height:32px; background:#25D366; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+  .preview-hdr-text .pt { font-size:13px; font-weight:700; color:white; }
+  .preview-hdr-text .ps { font-size:11px; color:rgba(255,255,255,.55); }
+  .preview-body { padding:10px 8px 8px; }
+  .preview-bubble-wrap { position:relative; }
+  .preview-bubble { background:white; border-radius:10px 10px 10px 2px; padding:10px 13px 26px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#111; white-space:pre-wrap; line-height:1.65; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+  .preview-bubble b { font-weight:700; }
+  .wa-meta { position:absolute; bottom:7px; right:10px; display:flex; align-items:center; gap:3px; }
+  .wa-time { font-size:10px; color:#8E9297; }
+  .wa-ticks { font-size:13px; color:#4FC3F7; font-weight:700; }
+  .preview-actions { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:7px; }
+  .btn-copy { background:white; border:none; border-radius:8px; padding:10px; font-size:12px; font-weight:700; color:#128C7E; cursor:pointer; font-family:'Outfit',sans-serif; }
+  .btn-wa-send { background:var(--wa); border:none; border-radius:8px; padding:10px; font-size:12px; font-weight:700; color:white; cursor:pointer; font-family:'Outfit',sans-serif; }
+  @keyframes popIn { from { opacity:0; transform:translateY(40px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes bubbleIn { from { opacity:0; transform:scale(.8); } to { opacity:1; transform:scale(1); } }
+  @keyframes ticksRead { from { color:#8E9297; } to { color:#4FC3F7; } }
+  .preview-card.pop { animation:popIn .45s cubic-bezier(.2,.9,.3,1.15) both; }
+  .preview-card.pop .preview-bubble { transform-origin:left bottom; animation:bubbleIn .5s .25s cubic-bezier(.2,.9,.3,1.25) both; }
+  .preview-card.pop .wa-ticks { animation:ticksRead .6s 1.1s both; }
+  @media (prefers-reduced-motion:reduce) { .preview-card.pop, .preview-card.pop * { animation:none !important; } }
+
+  .toast { position:fixed; bottom:calc(84px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%) translateY(12px); background:var(--red-deep); color:white; font-size:13px; font-weight:700; padding:10px 22px; border-radius:30px; opacity:0; transition:all .25s cubic-bezier(.34,1.56,.64,1); pointer-events:none; z-index:999; white-space:nowrap; box-shadow:0 4px 14px rgba(110,8,25,.3); }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ===== ANUNCIOS ===== */
+  #v-anuncios { font-family:'Inter',system-ui,-apple-system,'Segoe UI','Outfit',sans-serif; }
+  .a-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .a-top h2 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; }
+  .a-hist { background:var(--surface); border:1.5px solid var(--border); color:var(--muted); border-radius:20px; padding:6px 13px; font-size:12px; font-weight:700; font-family:'Outfit',sans-serif; cursor:pointer; }
+  .a-label { font-size:13px; color:var(--ink-soft); margin:18px 4px 8px; font-weight:500; }
+  .a-row-card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 12px; display:flex; align-items:center; gap:12px; margin-bottom:10px; width:100%; text-align:left; font-family:inherit; color:var(--ink); }
+  .a-row-card .ic { font-size:22px; }
+  .a-row-card .t { font-size:13.5px; font-weight:600; line-height:1.25; }
+  button.a-row-card { cursor:pointer; }
+  #a-voiceSelect { width:100%; padding:9px 10px; border-radius:9px; border:1px solid var(--line); background:var(--field); color:var(--ink); font-size:13.5px; font-family:inherit; }
+  #a-favRow { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 4px; }
+  .a-fav-chip { flex:0 0 auto; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:7px 12px; font-size:13px; color:var(--ink); display:flex; align-items:center; gap:6px; cursor:pointer; font-family:inherit; }
+  .a-lang { flex:0 0 auto; background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:12.5px; color:var(--ink-soft); cursor:pointer; font-weight:600; font-family:inherit; }
+  .a-lang.active { background:var(--red); border-color:var(--red); color:#fff; }
+  .a-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .a-card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 12px; text-align:left; cursor:pointer; position:relative; display:flex; flex-direction:column; gap:8px; min-height:92px; color:var(--ink); }
+  .a-card.active { border-color:var(--red); box-shadow:0 0 0 1.5px var(--red) inset; }
+  .a-card .ic { font-size:22px; }
+  .a-card .t { font-size:13.5px; font-weight:600; line-height:1.25; }
+  .a-star { position:absolute; top:6px; right:6px; background:none; border:none; font-size:18px; color:var(--line); cursor:pointer; line-height:1; padding:4px; }
+  .a-star.on { color:var(--board-amber); }
+  #a-panel { margin-top:20px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; display:none; }
+  #a-panel.show { display:block; }
+  #a-panel h3 { font-size:16px; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+  .a-field { margin-bottom:10px; }
+  .a-field label { display:block; font-size:12px; color:var(--ink-soft); margin-bottom:4px; text-transform:none; letter-spacing:0; font-weight:500; }
+  .a-field input { width:100%; padding:9px 10px; border-radius:9px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-size:14px; font-family:inherit; }
+  .a-board { margin-top:14px; background:var(--board); color:var(--board-amber); border-radius:10px; padding:14px; font-family:'IBM Plex Mono',monospace; font-size:13.5px; line-height:1.55; letter-spacing:.2px; overflow-x:auto; }
+  .a-actions { display:flex; gap:10px; margin-top:14px; }
+  .a-play { flex:1; background:var(--red); color:#fff; border:none; border-radius:11px; padding:13px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; }
+  .a-play:active { background:var(--red-dark); }
+  .a-sq { width:48px; border-radius:11px; border:1px solid var(--line); background:var(--bg); color:var(--ink-soft); font-size:18px; cursor:pointer; }
+  .a-sq.on { color:var(--board-amber); border-color:var(--board-amber); }
+  #a-histPanel { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; display:none; }
+  #a-histPanel.show { display:block; }
+  #a-histSheet { position:absolute; left:0; right:0; bottom:0; max-height:70vh; overflow-y:auto; background:var(--panel); border-radius:18px 18px 0 0; padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom,0px)); color:var(--ink); }
+  #a-histSheet h3 { margin:0 0 10px; font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  #a-histSheet button.close { background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer; }
+  .hist-item { padding:10px 0; border-bottom:1px solid var(--line); }
+  .hist-item .h-title { font-size:13px; font-weight:600; }
+  .hist-item .h-time { font-size:11px; color:var(--ink-soft); margin-bottom:3px; }
+  .hist-item .h-text { font-size:12.5px; color:var(--ink-soft); margin-top:3px; }
+  .a-empty { color:var(--ink-soft); font-size:13px; padding:12px 0; }
+
+  @media print {
+    .no-print { display:none !important; }
+    body { background:white; }
+    .pv-wrap { display:block !important; }
+    .preview-card { box-shadow:none; background:white; }
+    .preview-actions { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ico-wa" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.535 5.858L.057 23.804a.5.5 0 0 0 .61.61l5.913-1.546A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.044-1.393l-.36-.214-3.733.977.999-3.64-.235-.374A9.818 9.818 0 0 1 2.182 12C2.182 6.58 6.58 2.182 12 2.182c5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.398 9.818-9.818 9.818z"/></symbol>
+</svg>
+
+<header class="no-print">
+  <div class="header-main">
+    <div class="header-brand">
+      <div class="tk-logo">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 3C7.477 3 3 7.477 3 13s4.477 10 10 10a9.94 9.94 0 0 0 3.5-.635A7.5 7.5 0 1 1 13 3z" fill="#C8102E"/>
+          <path d="M19.5 7l.95 2.92H23.4l-2.44 1.77 1 2.92L19.5 12.8l-2.46 1.81 1-2.92-2.44-1.77h3z" fill="#C8102E"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>Turkish Airlines</h1>
+        <p>Ground Operations · CCS</p>
+      </div>
+    </div>
+    <div class="header-pill">CCS</div>
+  </div>
+
+  <!-- FIDS: reporte -->
+  <div class="fids-strip" id="fids-report">
+    <div class="fids-item"><div class="fids-label">Vuelo</div><div class="fids-value" id="r-fids-flight">TK223</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">ETA</div><div class="fids-value" id="r-fids-eta">23:41</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">ETD</div><div class="fids-value" id="r-fids-etd">01:45</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">Rampa</div><div class="fids-value" id="r-fids-ramp">25</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">Matrícula</div><div class="fids-value" id="r-fids-reg">TC-LMC</div></div>
+  </div>
+
+  <!-- FIDS: cierre -->
+  <div class="fids-strip" id="fids-cierre" style="display:none">
+    <div class="fids-item"><div class="fids-label">Vuelo</div><div class="fids-value" id="c-fids-flight">—</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">Fecha</div><div class="fids-value" id="c-fids-date">—</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">Origen</div><div class="fids-value" id="c-fids-origin">—</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">Matrícula</div><div class="fids-value" id="c-fids-reg">—</div></div>
+    <div class="fids-sep"></div>
+    <div class="fids-item"><div class="fids-label">PAX</div><div class="fids-value" id="c-fids-pax">0</div></div>
+  </div>
+</header>
+
+<!-- ═════════════ VISTA 1: REPORTE DE VUELO ═════════════ -->
+<div class="view container no-print" id="v-report">
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">1</div><div class="sec-title">Vuelo &amp; Aeronave</div><span class="sec-icon">✈️</span></div>
+    <div class="ig">
+      <label>Vuelo / Ruta / Fecha</label>
+      <input type="text" id="r-flight_info" value="TK223/224 CCS-IST | 12MAY26" oninput="R.syncFIDS()">
+    </div>
+    <div class="grid-2">
+      <div class="ig"><label>ETA</label><input type="time" id="r-eta" value="23:41" oninput="R.syncFIDS()"></div>
+      <div class="ig"><label>ETD</label><input type="time" id="r-etd" value="01:45" oninput="R.syncFIDS()"></div>
+    </div>
+    <div class="grid-2">
+      <div class="ig"><label>Matrícula</label><input type="text" id="r-reg" value="TC-LMC" oninput="R.syncFIDS()"></div>
+      <div class="ig"><label>Rampa</label><input type="text" id="r-ramp" value="25" oninput="R.syncFIDS()"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">2</div><div class="sec-title">Pasajeros Llegando</div><span class="sec-icon">🛬</span></div>
+    <div class="pax-strip">
+      <div class="pax-class"><div class="pax-class-label">Business · C</div><input class="pax-class-input" id="r-in_j" type="text" inputmode="numeric" maxlength="3" value="28" oninput="R.calcTotal('in')"></div>
+      <div class="pax-class"><div class="pax-class-label">Economy · Y</div><input class="pax-class-input" id="r-in_y" type="text" inputmode="numeric" maxlength="3" value="245" oninput="R.calcTotal('in')"></div>
+      <div class="pax-class"><div class="pax-class-label">Infant · INF</div><input class="pax-class-input" id="r-in_i" type="text" inputmode="numeric" maxlength="3" value="04" oninput="R.calcTotal('in')"></div>
+      <div class="pax-total" id="r-in_total">277 PAX</div>
+    </div>
+    <div class="section-divider"><span class="section-divider-title">Servicios Especiales</span><span class="section-divider-line"></span></div>
+    <div id="r-chips-in"></div>
+    <div class="selected-items" id="r-rows-in"></div>
+    <div class="ig" style="margin-top:12px">
+      <label>🧳 Equipaje (bultos)</label>
+      <input type="text" id="r-baggage" inputmode="numeric" value="511">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">3</div><div class="sec-title">Pasajeros Saliendo</div><span class="sec-icon">🛫</span></div>
+    <div class="pax-strip">
+      <div class="pax-class"><div class="pax-class-label">Business · C</div><input class="pax-class-input" id="r-out_j" type="text" inputmode="numeric" maxlength="3" value="17" oninput="R.calcTotal('out')"></div>
+      <div class="pax-class"><div class="pax-class-label">Economy · Y</div><input class="pax-class-input" id="r-out_y" type="text" inputmode="numeric" maxlength="3" value="286" oninput="R.calcTotal('out')"></div>
+      <div class="pax-class"><div class="pax-class-label">Infant · INF</div><input class="pax-class-input" id="r-out_i" type="text" inputmode="numeric" maxlength="3" value="04" oninput="R.calcTotal('out')"></div>
+      <div class="pax-total" id="r-out_total">307 PAX</div>
+    </div>
+    <div class="section-divider"><span class="section-divider-title">Servicios Especiales</span><span class="section-divider-line"></span></div>
+    <div id="r-chips-out"></div>
+    <div class="selected-items" id="r-rows-out"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">4</div><div class="sec-title">Catering / Comidas</div><span class="sec-icon">🍽️</span></div>
+    <div class="pax-strip meal-strip">
+      <div class="pax-class"><div class="pax-class-label">Business · C</div><input class="pax-class-input" id="r-meal_c" type="text" inputmode="numeric" maxlength="3" placeholder="0" oninput="R.calcMeals()"></div>
+      <div class="pax-class"><div class="pax-class-label">Economy · Y</div><input class="pax-class-input" id="r-meal_y" type="text" inputmode="numeric" maxlength="3" placeholder="0" oninput="R.calcMeals()"></div>
+      <div class="pax-total" id="r-meal_total">0 comidas</div>
+    </div>
+    <div class="section-divider"><span class="section-divider-title">Comidas Especiales</span><span class="section-divider-line"></span></div>
+    <div id="r-chips-meals"></div>
+    <div class="selected-items" id="r-rows-meals"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">5</div><div class="sec-title">Tiempos Operativos</div><span class="sec-icon">🕒</span></div>
+    <div class="times-grid">
+      <div class="time-card"><label>Apertura Mostradores</label><input type="time" id="r-t1" value="19:30"></div>
+      <div class="time-card"><label>Cierre de Vuelo</label><input type="time" id="r-t2" value="23:15"></div>
+      <div class="time-card"><label>Embarque</label><input type="time" id="r-t3" value="00:45"></div>
+      <div class="time-card"><label>Salida</label><input type="time" id="r-t4" value="01:45"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-wa" onclick="R.shareWA()"><svg width="19" height="19" fill="white"><use href="#ico-wa"/></svg>Enviar por WhatsApp</button>
+    <button class="btn btn-generate" onclick="R.generate()">✈️ Generar / Ver Reporte</button>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir / PDF</button>
+      <button class="btn btn-secondary" onclick="R.clearAll()">🗑️ Limpiar</button>
+    </div>
+  </div>
+
+  <div class="pv-wrap" id="r-preview-wrapper">
+    <div class="preview-card">
+      <div class="preview-hdr">
+        <div class="preview-avatar">✈️</div>
+        <div class="preview-hdr-text"><div class="pt">TK Ground Ops · CCS</div><div class="ps">Vista previa del reporte</div></div>
+      </div>
+      <div class="preview-body">
+        <div class="preview-bubble-wrap">
+          <div class="preview-bubble" id="r-preview"></div>
+          <div class="wa-meta"><span class="wa-time" id="r-wa-time"></span><span class="wa-ticks">✓✓</span></div>
+        </div>
+        <div class="preview-actions">
+          <button class="btn-copy" onclick="R.copyReport()">📋 Copiar texto</button>
+          <button class="btn-wa-send" onclick="R.shareWA()">Enviar WA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════ VISTA 2: CIERRE DE MOSTRADOR ═════════════ -->
+<div class="view container no-print" id="v-cierre">
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">1</div><div class="sec-title">Vuelo &amp; Aeronave</div><span class="sec-icon">✈️</span></div>
+    <div class="grid-2">
+      <div class="ig"><label>Vuelo</label><input type="text" id="c-flight" class="upper" value="TK224" autocapitalize="characters" oninput="C.syncFIDS()"></div>
+      <div class="ig"><label>Matrícula</label><input type="text" id="c-reg" class="upper" value="TCLLO" autocapitalize="characters" oninput="C.syncFIDS()"></div>
+    </div>
+    <div class="grid-2">
+      <div class="ig"><label>Fecha</label><input type="date" id="c-date" oninput="C.syncFIDS()"></div>
+      <div class="ig"><label>Origen</label><input type="text" id="c-origin" class="upper" value="CCS" autocapitalize="characters" oninput="C.syncFIDS()"></div>
+    </div>
+    <div class="ig" style="margin-top:10px;">
+      <label>N° de Update (Opcional)</label>
+      <input type="text" id="c-updatenum" class="upper" placeholder="Ej: 2 (Dejar vacío si es inicial)" autocapitalize="characters">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">2</div><div class="sec-title">Pasajeros</div><span class="sec-icon">👥</span></div>
+    <div class="pax-strip">
+      <div class="pax-class"><div class="pax-class-label">Business · C</div><input class="pax-class-input" id="c-pc" type="text" inputmode="numeric" maxlength="3" placeholder="0" oninput="C.calcTotal()"></div>
+      <div class="pax-class"><div class="pax-class-label">Economy · Y</div><input class="pax-class-input" id="c-py" type="text" inputmode="numeric" maxlength="3" placeholder="0" oninput="C.calcTotal()"></div>
+      <div class="pax-class"><div class="pax-class-label">Infant · INF</div><input class="pax-class-input" id="c-pi" type="text" inputmode="numeric" maxlength="3" placeholder="0" oninput="C.calcTotal()"></div>
+      <div class="pax-total" id="c-pax_total">0 PAX</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">3</div><div class="sec-title">Servicios Especiales</div><span class="sec-icon">♿</span></div>
+    <div class="section-divider"><span class="section-divider-title">Toca para agregar</span><span class="section-divider-line"></span></div>
+    <div id="c-chips-svc"></div>
+    <div class="selected-items" id="c-rows-svc"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="sec-num">4</div><div class="sec-title">Equipaje</div><span class="sec-icon">🛄</span></div>
+    <div class="ig">
+      <label>Notas de equipaje (opcional)</label>
+      <input type="text" id="c-bagnote" placeholder="Ej: 02 piezas prioritarias">
+    </div>
+    <div class="pcs-box">
+      <label>📦 Piezas totales</label>
+      <input type="text" id="c-pcs" inputmode="numeric" placeholder="0">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-wa" onclick="C.shareWA()"><svg width="19" height="19" fill="white"><use href="#ico-wa"/></svg>Enviar por WhatsApp</button>
+    <button class="btn btn-generate" onclick="C.generate()">✈️ Generar / Ver Reporte</button>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="btn btn-secondary" onclick="C.clearAll()">🗑️ Nuevo cierre</button>
+    </div>
+  </div>
+
+  <div class="pv-wrap" id="c-preview-wrapper">
+    <div class="preview-card" id="c-preview-card">
+      <div class="preview-hdr">
+        <div class="preview-avatar">✈️</div>
+        <div class="preview-hdr-text"><div class="pt">TK Ground Ops · CCS</div><div class="ps">Vista previa del cierre</div></div>
+      </div>
+      <div class="preview-body">
+        <div class="preview-bubble-wrap">
+          <div class="preview-bubble" id="c-preview"></div>
+          <div class="wa-meta"><span class="wa-time" id="c-wa-time"></span><span class="wa-ticks">✓✓</span></div>
+        </div>
+        <div class="preview-actions">
+          <button class="btn-copy" onclick="C.copyReport()">📋 Copiar texto</button>
+          <button class="btn-wa-send" onclick="C.shareWA()">Enviar WA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════ VISTA 3: ANUNCIOS DE EMBARQUE ═════════════ -->
+<div class="view container no-print" id="v-anuncios">
+  <div class="a-top">
+    <h2>📢 Anuncios de embarque</h2>
+    <button class="a-hist" id="a-histBtn">🕘 Historial</button>
+  </div>
+
+  <button class="a-row-card" id="a-testCard">
+    <div class="ic">🔈</div>
+    <div style="flex:1;">
+      <div class="t">Probar sonido</div>
+      <div id="a-ttsStatus" style="font-size:12px; color:var(--ink-soft); margin-top:2px;">Toca para verificar el audio en este dispositivo</div>
+    </div>
+  </button>
+
+  <div class="a-row-card" style="margin-bottom:4px;">
+    <div class="ic">🗣️</div>
+    <div style="flex:1;">
+      <div class="t" style="margin-bottom:6px;">Motor / voz</div>
+      <select id="a-voiceSelect"><option value="">Automático (español)</option></select>
+    </div>
+  </div>
+
+  <div id="a-favSection" style="display:none;">
+    <div class="a-label">Favoritos</div>
+    <div id="a-favRow"></div>
+  </div>
+
+  <div class="a-label">Tipos de anuncio</div>
+  <div class="a-grid" id="a-grid"></div>
+
+  <div id="a-panel">
+    <h3 id="a-panelTitle"></h3>
+    <div id="a-langRow" style="display:flex; gap:6px; overflow-x:auto; margin-bottom:12px;"></div>
+    <div id="a-fieldsContainer"></div>
+    <div class="a-board" id="a-previewText"></div>
+    <div id="a-panelStatus" style="font-size:12px; color:var(--ink-soft); margin-top:8px;"></div>
+    <div class="a-actions">
+      <button class="a-play" id="a-playBtn">🔊 Reproducir anuncio</button>
+      <button class="a-sq" id="a-stopBtn" style="display:none;">⏹</button>
+      <button class="a-sq" id="a-favToggle">☆</button>
+    </div>
+  </div>
+</div>
+
+<div id="a-histPanel" class="no-print">
+  <div id="a-histSheet">
+    <h3>Historial <button class="close" id="a-histClose">✕</button></h3>
+    <div id="a-histList"></div>
+  </div>
+</div>
+
+<nav class="tabs no-print">
+  <button id="t-report" data-tab="report"><span class="ti">📋</span>Reporte</button>
+  <button id="t-cierre" data-tab="cierre"><span class="ti">🛄</span>Cierre</button>
+  <button id="t-anuncios" data-tab="anuncios"><span class="ti">📢</span>Anuncios</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═════════ UTILIDADES COMPARTIDAS ═════════ */
+const $$ = id => document.getElementById(id);
+const p2  = n => String(n).padStart(2,'0');
+const int = v => Math.max(0, parseInt(v,10) || 0);
+let toastT;
+function toast(m){ const t=$$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'), 2300); }
+function openWA(text){
+  const url='https://wa.me/?text=' + encodeURIComponent(text);
+  const native = window.Capacitor && typeof Capacitor.isNativePlatform==='function' && Capacitor.isNativePlatform();
+  if(native) location.href = url; else window.open(url, '_blank');
+}
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); toast('📋 Copiado al portapapeles'); }
+  catch(e){
+    const a=document.createElement('textarea'); a.value=t; document.body.appendChild(a); a.select();
+    try { document.execCommand('copy'); toast('📋 Copiado'); } catch(_) { toast('❌ Error al copiar'); }
+    a.remove();
+  }
+}
+
+/* Selector de chips + filas con cantidad (usado por Reporte y Cierre) */
+function createPicker({ chipsId, rowsId, items, cats, hint }){
+  const chipsEl=$$(chipsId), rowsEl=$$(rowsId);
+  const state={}, chips={}, rows={};
+  const hintEl=document.createElement('p'); hintEl.className='empty-hint'; hintEl.textContent=hint; rowsEl.appendChild(hintEl);
+  const refresh=()=>{ hintEl.style.display = Object.keys(state).length ? 'none' : ''; };
+  const badge=code=>{ chips[code].querySelector('.chip-badge').textContent = int(state[code].qty) || 1; };
+
+  function addRow(item){
+    const row=document.createElement('div'); row.className='selected-row';
+    row.innerHTML=`
+      <span class="item-label">${item.icon} ${item.label}</span>
+      <button class="step" data-d="-1" aria-label="Restar">−</button>
+      <input class="item-qty" type="text" inputmode="numeric" value="01">
+      <button class="step" data-d="1" aria-label="Sumar">+</button>
+      <input class="item-note" type="text" placeholder="Asiento, nombre…">
+      <button class="btn-deselect" aria-label="Quitar">×</button>`;
+    const [qty,note]=row.querySelectorAll('input');
+    row.querySelectorAll('.step').forEach(b=>b.onclick=()=>{
+      const n=Math.max(1, int(qty.value)+(+b.dataset.d));
+      qty.value=p2(n); state[item.code].qty=qty.value; badge(item.code);
+      if(navigator.vibrate) navigator.vibrate(8);
+    });
+    qty.oninput =()=>{ state[item.code].qty=qty.value; badge(item.code); };
+    note.oninput=()=>{ state[item.code].note=note.value; };
+    row.querySelector('.btn-deselect').onclick=()=>toggle(item);
+    rows[item.code]=row; rowsEl.appendChild(row);
+  }
+  function toggle(item){
+    if(state[item.code]){
+      delete state[item.code]; chips[item.code].classList.remove('active');
+      rows[item.code]?.remove(); delete rows[item.code];
+    } else {
+      state[item.code]={ qty:'01', note:'' };
+      chips[item.code].classList.add('active'); addRow(item); badge(item.code);
+    }
+    refresh();
+  }
+  chipsEl.innerHTML='';
+  cats.forEach(cat=>{
+    const block=document.createElement('div'); block.className='cat-block';
+    block.innerHTML=`<div class="cat-header"><span class="cat-icon">${cat.icon}</span><span class="cat-name">${cat.name}</span><span class="cat-line"></span></div>`;
+    const wrap=document.createElement('div'); wrap.className='cat-chips';
+    cat.codes.forEach(code=>{
+      const item=items.find(i=>i.code===code); if(!item) return;
+      const btn=document.createElement('button'); btn.className='chip';
+      btn.innerHTML=`<span class="chip-ico">${item.icon}</span>${item.label}<span class="chip-badge"></span>`;
+      btn.onclick=()=>toggle(item); chips[code]=btn; wrap.appendChild(btn);
+    });
+    block.appendChild(wrap); chipsEl.appendChild(block);
+  });
+  return {
+    state,
+    entries(){ return Object.entries(state).map(([code,d])=>({ item:items.find(i=>i.code===code), qty:d.qty, note:(d.note||'').trim() })).filter(e=>e.item); },
+    clear(){ Object.keys(state).forEach(code=>{ delete state[code]; chips[code].classList.remove('active'); rows[code]?.remove(); delete rows[code]; }); refresh(); }
+  };
+}
+
+/* ═════════ MÓDULO 1 · REPORTE DE VUELO ═════════ */
+window.R = (() => {
+  const $ = id => $$('r-'+id);
+  const ITEMS = [
+    { code:'INAD', icon:'🚫', label:'INAD' }, { code:'DEPU', icon:'👮', label:'DEPU' }, { code:'DEPA', icon:'📋', label:'DEPA' },
+    { code:'UMNR', icon:'👦', label:'UMNR' }, { code:'WCH',  icon:'♿', label:'WCH'  }, { code:'VIP',  icon:'⭐', label:'VIP'  },
+    { code:'EMD',  icon:'💳', label:'EMD'  }, { code:'EXTS', icon:'💺', label:'EXTS' }, { code:'AVIH', icon:'🐾', label:'AVIH' },
+    { code:'PETC', icon:'🐱', label:'PETC' }, { code:'SVAN', icon:'🦮', label:'SVAN' }, { code:'CBBG', icon:'🎸', label:'CBBG' },
+  ];
+  const SVC_CATS = [
+    { name:'Seguridad',           icon:'🛡️', codes:['INAD','DEPU','DEPA'] },
+    { name:'Pasajeros',           icon:'👤', codes:['UMNR','WCH','VIP','EMD','EXTS'] },
+    { name:'Animales & Equipaje', icon:'🐾', codes:['AVIH','PETC','SVAN','CBBG'] },
+  ];
+  const MEALS = [
+    { code:'VGML', icon:'🌱', label:'VGML' }, { code:'AVML', icon:'🍛', label:'AVML' }, { code:'MOML', icon:'🌙', label:'MOML' },
+    { code:'KSML', icon:'✡️', label:'KSML' }, { code:'HNML', icon:'🍖', label:'HNML' }, { code:'DBML', icon:'💉', label:'DBML' },
+    { code:'GFML', icon:'🌾', label:'GFML' }, { code:'LCML', icon:'🥗', label:'LCML' }, { code:'NLML', icon:'🥛', label:'NLML' },
+    { code:'BLML', icon:'🍚', label:'BLML' }, { code:'SFML', icon:'🐟', label:'SFML' }, { code:'FPML', icon:'🍎', label:'FPML' },
+    { code:'BBML', icon:'👶', label:'BBML' }, { code:'CHML', icon:'👧', label:'CHML' },
+  ];
+  const MEAL_CATS = [
+    { name:'Vegetariano / Religioso', icon:'🌱', codes:['VGML','AVML','MOML','KSML','HNML'] },
+    { name:'Salud / Dieta',           icon:'🩺', codes:['DBML','GFML','LCML','NLML','BLML'] },
+    { name:'Mariscos / Otros',        icon:'🐟', codes:['SFML','FPML','BBML','CHML'] },
+  ];
+  const pIn   = createPicker({ chipsId:'r-chips-in',    rowsId:'r-rows-in',    items:ITEMS, cats:SVC_CATS,  hint:'Toca un servicio para agregarlo' });
+  const pOut  = createPicker({ chipsId:'r-chips-out',   rowsId:'r-rows-out',   items:ITEMS, cats:SVC_CATS,  hint:'Toca un servicio para agregarlo' });
+  const pMeal = createPicker({ chipsId:'r-chips-meals', rowsId:'r-rows-meals', items:MEALS, cats:MEAL_CATS, hint:'Toca una comida especial para agregarla' });
+
+  function syncFIDS(){
+    const txt=$('flight_info').value, m=txt.match(/TK\d+/i);
+    $('fids-flight').textContent = m ? m[0].toUpperCase() : (txt.split(' ')[0]||'—');
+    $('fids-eta').textContent  = $('eta').value  || '--:--';
+    $('fids-etd').textContent  = $('etd').value  || '--:--';
+    $('fids-ramp').textContent = $('ramp').value || '—';
+    $('fids-reg').textContent  = $('reg').value  || '—';
+  }
+  function calcTotal(dir){
+    const t=int($(`${dir}_j`).value)+int($(`${dir}_y`).value)+int($(`${dir}_i`).value);
+    $(`${dir}_total`).textContent=`${t} PAX`;
+  }
+  function calcMeals(){ $('meal_total').textContent = `${int($('meal_c').value)+int($('meal_y').value)} comidas`; }
+  function paxStr(dir){
+    const j=$(`${dir}_j`).value||'0', y=$(`${dir}_y`).value||'0', i=$(`${dir}_i`).value||'0';
+    return `  C: ${j} | Y: ${y} | INF: ${i}  →  Total: ${int(j)+int(y)+int(i)} PAX`;
+  }
+  function itemsText(picker){
+    return picker.entries().map(e=>`  ${e.item.icon} ${e.item.label}: ${e.qty}${e.note?` — ${e.note}`:''}\n`).join('');
+  }
+  function buildReport(){
+    const D='━━━━━━━━━━━━━━━━━━━━━━━━';
+    const inItems=itemsText(pIn), outItems=itemsText(pOut), mealItems=itemsText(pMeal);
+    const mealC=$('meal_c').value||'0', mealY=$('meal_y').value||'0';
+    const hasMeals = mealC!=='0' || mealY!=='0' || mealItems;
+    const catering = hasMeals ? `${D}\n🍽️ CATERING\n  C (Business): ${mealC} comidas\n  Y (Economía): ${mealY} comidas\n${mealItems}` : '';
+    return `Buenas noches equipo ✈️
+${D}
+${$('flight_info').value}
+${D}
+🕒 ETA: ${$('eta').value}
+🛫 ETD: ${$('etd').value}
+✈️ Matrícula: ${$('reg').value}
+🅿️ Rampa: ${$('ramp').value}
+${D}
+🛬 PASAJEROS LLEGANDO
+${paxStr('in')}
+${inItems}🧳 Equipaje: ${$('baggage').value} bultos
+${D}
+🛫 PASAJEROS SALIENDO
+${paxStr('out')}
+${outItems}${catering}${D}
+🕓 Apertura mostradores: ${$('t1').value}
+🛂 Cierre de vuelo:      ${$('t2').value}
+🛫 Embarque:             ${$('t3').value}
+🚀 Salida:               ${$('t4').value}
+${D}`;
+  }
+  function generate(){
+    $('preview').textContent = buildReport();
+    const n=new Date(); $('wa-time').textContent=`${p2(n.getHours())}:${p2(n.getMinutes())}`;
+    const w=$('preview-wrapper'); w.style.display='block';
+    const card=w.querySelector('.preview-card'); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+    setTimeout(()=>w.scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+    toast('✅ Reporte generado');
+  }
+  function clearAll(){
+    if(!confirm('¿Limpiar todos los datos del reporte?')) return;
+    ['flight_info','reg','ramp','baggage','meal_c','meal_y','eta','etd','t1','t2','t3','t4'].forEach(id=>{ $(id).value=''; });
+    ['in','out'].forEach(dir=>{ ['j','y','i'].forEach(c=>{ $(`${dir}_${c}`).value=''; }); $(`${dir}_total`).textContent='0 PAX'; });
+    pIn.clear(); pOut.clear(); pMeal.clear();
+    $('meal_total').textContent='0 comidas';
+    $('preview-wrapper').style.display='none'; $('preview').textContent='';
+    syncFIDS(); window.scrollTo({ top:0, behavior:'smooth' });
+    toast('🗑️ Reporte limpiado');
+  }
+  syncFIDS();
+  return { syncFIDS, calcTotal, calcMeals, generate, clearAll,
+           shareWA:()=>openWA(buildReport()), copyReport:()=>copyText(buildReport()) };
+})();
+
+/* ═════════ MÓDULO 2 · CIERRE DE MOSTRADOR ═════════ */
+window.C = (() => {
+  const $ = id => $$('c-'+id);
+  const MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const ITEMS = [
+    { code:'WCH',  icon:'♿', label:'WCH'  }, { code:'INAD', icon:'🚫', label:'INAD' }, { code:'DEPU', icon:'👮', label:'DEPU' },
+    { code:'DEPA', icon:'📋', label:'DEPA' }, { code:'PETC', icon:'🐱', label:'PETC' }, { code:'AVIH', icon:'🐾', label:'AVIH' },
+    { code:'BLND', icon:'🦯', label:'BLND' }, { code:'DEAF', icon:'🦻', label:'DEAF' }, { code:'STAFF',icon:'🪪', label:'STAFF'},
+    { code:'CBBG', icon:'🎸', label:'CBBG' }, { code:'VIP',  icon:'⭐', label:'VIP'  }, { code:'UMNR', icon:'👦', label:'UMNR' },
+    { code:'SVAN', icon:'🦮', label:'SVAN' },
+  ];
+  const CATS = [
+    { name:'Pasajeros',           icon:'👤',  codes:['WCH','BLND','DEAF','STAFF','VIP','UMNR'] },
+    { name:'Seguridad',           icon:'🛡️', codes:['INAD','DEPU','DEPA'] },
+    { name:'Animales & Equipaje', icon:'🐾',  codes:['PETC','AVIH','SVAN','CBBG'] },
+  ];
+  const picker = createPicker({ chipsId:'c-chips-svc', rowsId:'c-rows-svc', items:ITEMS, cats:CATS, hint:'Toca un servicio para agregarlo' });
+
+  const today=()=>{ const d=new Date(); return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`; };
+  const fmtDate=v=>{ if(!v) return ''; const [y,m,d]=v.split('-'); return d+MON[+m-1]+y.slice(2); };
+  const totals=()=>{ const c=int($('pc').value), y=int($('py').value), i=int($('pi').value); return {c,y,i,t:c+y+i}; };
+  function calcTotal(){ const t=totals().t; $('pax_total').textContent=`${t} PAX`; $('fids-pax').textContent=t; }
+  function syncFIDS(){
+    $('fids-flight').textContent = $('flight').value.trim().toUpperCase() || '—';
+    $('fids-date').textContent   = fmtDate($('date').value) || '—';
+    $('fids-origin').textContent = $('origin').value.trim().toUpperCase() || '—';
+    $('fids-reg').textContent    = $('reg').value.trim().toUpperCase() || '—';
+  }
+  function buildReport(){
+    const L='───────────────────────';
+    const {c,y,i,t}=totals();
+    const reg=$('reg').value.trim().toUpperCase();
+    const upd=$('updatenum').value.trim();
+    const lines=picker.entries().filter(e=>int(e.qty)).map(e=>`${e.item.icon} ${e.item.code}: ${p2(int(e.qty))}${e.note?` — ${e.note}`:''}`);
+    const notes=$('bagnote').value.trim();
+    let r=`✈️*Cierre de vuelo por mostrador*✈️\n`;
+    if(upd){ const n=upd.replace(/[^0-9]/g,''); r+=`🔄 *UPDATE N°${n||upd}*\n`; }
+    r+=`${L}\n`;
+    r+=`*Vuelo:* ${$('flight').value.trim().toUpperCase()}${reg?` *${reg}*`:''}\n`;
+    r+=`*Fecha:* ${fmtDate($('date').value)}\n`;
+    r+=`*Origen:* ${$('origin').value.trim().toUpperCase()}\n\n`;
+    r+=`👥 *Pasajeros*\n C     Y     INF:\n${p2(c)}/${p2(y)}/${p2(i)}= *${t}*\n\n`;
+    r+=`♿ *Servicios especiales*\n\n${lines.length?lines.join('\n'):'N/A'}\n\n`;
+    r+=`🛄 *Equipaje*\n\n${notes?notes+'\n\n':''}`;
+    r+=`📦 *Piezas totales:* *${int($('pcs').value)}*\n${L}`;
+    return r;
+  }
+  const previewHTML=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*([^*\n]+)\*/g,'<b>$1</b>');
+  function generate(){
+    $('preview').innerHTML=previewHTML(buildReport());
+    const n=new Date(); $('wa-time').textContent=`${p2(n.getHours())}:${p2(n.getMinutes())}`;
+    const w=$('preview-wrapper'); w.style.display='block';
+    const card=$('preview-card'); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+    setTimeout(()=>w.scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+    toast('✅ Cierre generado');
+  }
+  function clearAll(){
+    if(!confirm('¿Iniciar un nuevo cierre? Se borran pasajeros, servicios y equipaje.')) return;
+    ['pc','py','pi','pcs','bagnote','updatenum'].forEach(id=>{ $(id).value=''; });
+    picker.clear();
+    $('date').value=today();
+    $('preview-wrapper').style.display='none';
+    calcTotal(); syncFIDS();
+    window.scrollTo({ top:0, behavior:'smooth' });
+    toast('🗑️ Listo para otro vuelo');
+  }
+  $('date').value=today(); calcTotal(); syncFIDS();
+  return { syncFIDS, calcTotal, generate, clearAll,
+           shareWA:()=>openWA(buildReport()), copyReport:()=>copyText(buildReport()) };
+})();
+
+/* ═════════ MÓDULO 3 · ANUNCIOS DE EMBARQUE ═════════ */
+window.A = (() => {
+const LANGS = [
+  {code:'es', label:'🇪🇸 ES', speech:'es-ES', rtl:false},
+  {code:'en', label:'🇬🇧 EN', speech:'en-US', rtl:false},
+  {code:'zh', label:'🇨🇳 中文', speech:'zh-CN', rtl:false},
+  {code:'ar', label:'🇸🇦 عربي', speech:'ar-SA', rtl:true},
+  {code:'tr', label:'🇹🇷 TR', speech:'tr-TR', rtl:false},
+];
+
+const ANN = [
+  { id:'sobreventa', icon:'🎟️', title:'Sobreventa – Voluntarios',
+    fields:[{k:'vuelo',l:'Vuelo',d:'TK183'},{k:'monto',l:'Compensación (€)',d:'600'},{k:'hotel',l:'Hotel',d:'Marriott'}],
+    tpl:{
+      es:v=>`¡Su atención por favor! Estimados pasajeros de Turkish, se informa que el vuelo de hoy ${v.vuelo} presenta sobreventa, es por ello que la aerolínea está ofreciendo como compensación: ${v.monto} euros a pasajeros voluntarios que decidan viajar el día de mañana, hospedaje en el hotel ${v.hotel}, comida y transporte ida y vuelta. Los cambios en la boletería serán realizados por la aerolínea hasta su destino final con Turkish. Aquellos pasajeros que estén interesados, por favor acercarse a la puerta de embarque e identificarse con nuestro personal. Gracias por su atención.`,
+      en:v=>`Your attention please, dear Turkish Airlines passengers. We would like to inform you that today's flight ${v.vuelo} is oversold. As compensation, the airline is offering ${v.monto} euros to volunteer passengers willing to travel tomorrow, accommodation at the ${v.hotel} hotel, meals, and round-trip transportation. All ticket changes will be handled by the airline through to your final destination with Turkish. Interested passengers, please come to the boarding gate and identify yourselves to our staff. Thank you for your attention.`,
+      zh:v=>`各位土耳其航空的旅客,请注意!现通知您,今天的${v.vuelo}次航班出现超售情况。作为补偿,航空公司将为自愿改签至明天出行的旅客提供${v.monto}欧元现金补偿、入住${v.hotel}酒店、用餐及往返交通安排。所有机票变更将由航空公司负责办理,直至您的最终目的地。有意愿的旅客请前往登机口,向我们的工作人员登记。感谢您的关注。`,
+      ar:v=>`عناية جميع ركاب الخطوط الجوية التركية، نود إعلامكم بأن رحلة اليوم ${v.vuelo} تشهد حجزاً زائداً عن السعة. لذلك تقدّم شركة الطيران كتعويض: مبلغ ${v.monto} يورو للركاب المتطوعين الذين يقبلون السفر غداً، والإقامة في فندق ${v.hotel}، بالإضافة إلى الوجبات والنقل ذهاباً وإياباً. سيتم إجراء تغييرات التذاكر من قبل شركة الطيران حتى وجهتكم النهائية مع الخطوط التركية. الركاب الراغبون بالتطوع، يرجى التوجه إلى بوابة الصعود والتعريف عن أنفسكم لموظفينا. شكراً لانتباهكم.`,
+      tr:v=>`Sayın Turkish Airlines yolcuları, dikkatinize sunarız. Bugünkü ${v.vuelo} sefer sayılı uçuşumuzda aşırı rezervasyon durumu bulunmaktadır. Bu nedenle havayolumuz, yarın seyahat etmeyi kabul eden gönüllü yolcularımıza şu tazminatları sunmaktadır: ${v.monto} avro nakit, ${v.hotel} otelinde konaklama, yemek ve gidiş-dönüş transfer hizmeti. Bilet değişiklikleri, nihai varış noktanıza kadar havayolumuz tarafından gerçekleştirilecektir. İlgilenen yolcularımızın biniş kapısına gelerek personelimize kendilerini tanıtmalarını rica ederiz. İlginiz için teşekkür ederiz.`,
+    }},
+
+  { id:'llamado', icon:'📢', title:'Llamado a un pasajero',
+    fields:[{k:'nombre',l:'Pasajero',d:'Morales, Bebinson'},{k:'sala',l:'Sala',d:'23'}],
+    tpl:{
+      es:v=>`¡Su atención por favor! Se agradece al pasajero de Turkish, ${v.nombre}, favor presentarse en la sala número ${v.sala} e identificarse con personal de la aerolínea.`,
+      en:v=>`Your attention please. Would Turkish Airlines passenger ${v.nombre} kindly report to room number ${v.sala} and identify yourself to airline staff.`,
+      zh:v=>`各位旅客请注意,恳请土耳其航空旅客${v.nombre}前往${v.sala}号房间,并向航空公司工作人员出示证件。`,
+      ar:v=>`عناية يرجى من مسافر الخطوط الجوية التركية ${v.nombre} التوجه إلى الصالة رقم ${v.sala} والتعريف عن نفسه لدى موظفي شركة الطيران.`,
+      tr:v=>`Dikkatinize sunarız, Turkish Airlines yolcusu ${v.nombre}, lütfen ${v.sala} numaralı salona gelerek havayolu personeline kendinizi tanıtınız.`,
+    }},
+
+  { id:'ultimo-pax', icon:'⏰', title:'Último llamado a pasajero',
+    fields:[{k:'nombre',l:'Pasajero',d:''},{k:'puerta',l:'Puerta',d:'23'}],
+    tpl:{
+      es:v=>`¡Su atención por favor! Último llamado para el pasajero de Turkish, ${v.nombre || '[nombre del pasajero]'}, favor embarcar por la puerta número ${v.puerta}.`,
+      en:v=>`Your attention please. Final call for Turkish Airlines passenger ${v.nombre || '[passenger name]'}, please proceed to boarding gate number ${v.puerta}.`,
+      zh:v=>`各位旅客请注意,现在是土耳其航空旅客${v.nombre || '[乘客姓名]'}的最后登机广播,请立即前往${v.puerta}号登机口登机。`,
+      ar:v=>`عناية أخيرة، نداء أخير لمسافر الخطوط الجوية التركية ${v.nombre || '[اسم المسافر]'}، يرجى التوجه إلى بوابة الصعود رقم ${v.puerta}.`,
+      tr:v=>`Dikkatinize sunarız, Turkish Airlines yolcusu ${v.nombre || '[yolcu adı]'} için son çağrıdır, lütfen ${v.puerta} numaralı kapıdan uçağa binişinizi gerçekleştiriniz.`,
+    }},
+
+  { id:'ultimo-general', icon:'🚨', title:'Último llamado general',
+    fields:[{k:'vuelo',l:'Vuelo',d:'TK183'},{k:'puerta',l:'Puerta',d:'23'}],
+    tpl:{
+      es:v=>`¡Su atención por favor! Último llamado para el vuelo de Turkish ${v.vuelo}, señores pasajeros, favor embarcar por la puerta número ${v.puerta}.`,
+      en:v=>`Your attention please. Final call for Turkish Airlines flight ${v.vuelo}. Passengers, please proceed to boarding gate number ${v.puerta}.`,
+      zh:v=>`各位旅客请注意,土耳其航空${v.vuelo}次航班最后登机广播,请各位旅客立即前往${v.puerta}号登机口登机。`,
+      ar:v=>`عناية النداء الأخير لرحلة الخطوط الجوية التركية رقم ${v.vuelo}. حضرات الركاب، يرجى التوجه إلى بوابة الصعود رقم ${v.puerta}.`,
+      tr:v=>`Dikkatinize sunarız, Turkish Airlines ${v.vuelo} sefer sayılı uçuşumuz için son çağrıdır. Sayın yolcularımız, lütfen ${v.puerta} numaralı kapıdan uçağa binişinizi gerçekleştiriniz.`,
+    }},
+
+  { id:'info-abordaje', icon:'ℹ️', title:'Información de abordaje',
+    fields:[],
+    tpl:{
+      es:()=>`¡Atención a todos los pasajeros de Turkish! Queremos asegurarnos de que su experiencia de abordaje sea lo más eficiente y cómoda posible. Por ello, les recordamos que el abordaje se llevará a cabo por números de asiento asignados, desde la parte trasera del avión hasta la parte frontal, comenzando el abordaje con pasajeros de servicios especiales y business. Les pedimos amablemente que estén atentos a los anuncios y eviten levantarse de sus asientos hasta que sea su turno de abordar. Esto nos permitirá agilizar el proceso y evitar posibles congestiones en el área de embarque. ¡Gracias por su atención!`,
+      en:()=>`Attention all Turkish Airlines passengers! We want to make sure your boarding experience is as smooth and comfortable as possible. Boarding will take place by assigned seat numbers, from the rear of the aircraft to the front, beginning with passengers requiring special assistance and Business Class passengers. We kindly ask you to listen for announcements and remain seated until it is your turn to board. This will help us speed up the process and avoid congestion in the boarding area. Thank you for your attention!`,
+      zh:()=>`各位土耳其航空的旅客请注意!为了让您的登机体验更加高效舒适,登机将按照座位号顺序进行,从飞机后部开始至前部,首先为需要特殊服务的旅客及商务舱旅客登机。请您留意广播通知,并在轮到您登机前请勿离开座位。这将有助于加快登机流程,避免登机口拥堵。感谢您的配合!`,
+      ar:()=>`عناية جميع ركاب الخطوط الجوية التركية! نحرص على أن تكون تجربة صعودكم إلى الطائرة سلسة ومريحة قدر الإمكان. سيتم الصعود حسب أرقام المقاعد المخصصة، بدءاً من مؤخرة الطائرة وصولاً إلى مقدمتها، على أن يبدأ الصعود بركاب الخدمات الخاصة ودرجة الأعمال. نرجو منكم الانتباه إلى الإعلانات وعدم مغادرة مقاعدكم إلا عند حلول دوركم للصعود. سيساعدنا هذا في تسريع الإجراءات وتجنب الازدحام في منطقة الصعود. شكراً لتعاونكم!`,
+      tr:()=>`Sayın Turkish Airlines yolcuları, dikkatinize! Biniş sürecinizin en verimli ve konforlu şekilde gerçekleşmesi için, biniş işlemi uçağın arka kısmından ön kısmına doğru, koltuk numaralarına göre yapılacaktır. Öncelik özel hizmet gerektiren yolcularımıza ve business sınıfı yolcularımıza verilecektir. Lütfen anonsları dikkatle takip ediniz ve sıranız gelene kadar koltuğunuzdan kalkmayınız. Bu sayede biniş işlemini hızlandırabilir ve biniş alanındaki yoğunluğu önleyebiliriz. İlginiz için teşekkür ederiz!`,
+    }},
+
+  { id:'vouchers', icon:'🍽️', title:'Vouchers',
+    fields:[{k:'vuelo',l:'Vuelo',d:'TK183'},{k:'restaurante',l:'Restaurante',d:'Delipasta'}],
+    tpl:{
+      es:v=>`Su atención por favor, se les informa a todos los pasajeros de Turkish vuelo ${v.vuelo}, que pueden buscar sus bonos de refrigerio en el restaurante ${v.restaurante}, en la feria de comida.`,
+      en:v=>`Your attention please. All Turkish Airlines flight ${v.vuelo} passengers may collect their meal vouchers at ${v.restaurante} restaurant, in the food court.`,
+      zh:v=>`各位旅客请注意,土耳其航空${v.vuelo}次航班的旅客可前往美食广场的${v.restaurante}餐厅领取餐食券。`,
+      ar:v=>`عناية يُعلن لجميع ركاب رحلة الخطوط الجوية التركية رقم ${v.vuelo} أنه بإمكانهم استلام قسائم وجباتهم من مطعم ${v.restaurante} في منطقة المطاعم.`,
+      tr:v=>`Dikkatinize sunarız, Turkish Airlines ${v.vuelo} sefer sayılı uçuş yolcuları, yemek kuponlarını yemek alanındaki ${v.restaurante} restoranından alabilirler.`,
+    }},
+
+  { id:'catering', icon:'🍱', title:'Sonido de catering',
+    fields:[{k:'vuelo',l:'Vuelo',d:'TK224'},{k:'restaurante',l:'Restaurante',d:'Delipasta'}],
+    tpl:{
+      es:v=>`¡Su atención por favor! Se le informa a todos los pasajeros de Turkish Airlines, vuelo ${v.vuelo}, que pueden pasar con su carné de embarque a retirar un almuerzo en el restaurante ${v.restaurante}, ubicado en la feria. ¡Gracias por su atención!`,
+      en:v=>`Your attention please. All Turkish Airlines flight ${v.vuelo} passengers may present their boarding pass at ${v.restaurante} restaurant, located in the food court, to receive a meal. Thank you for your attention!`,
+      zh:v=>`各位旅客请注意,土耳其航空${v.vuelo}次航班的旅客可凭登机牌前往美食广场的${v.restaurante}餐厅领取午餐。感谢您的关注!`,
+      ar:v=>`عناية يُعلن لجميع ركاب رحلة الخطوط الجوية التركية رقم ${v.vuelo} أنه بإمكانهم تقديم بطاقة الصعود في مطعم ${v.restaurante} الواقع في منطقة المطاعم للحصول على وجبة. شكراً لانتباهكم!`,
+      tr:v=>`Dikkatinize sunarız, Turkish Airlines ${v.vuelo} sefer sayılı uçuş yolcuları, yemek alanında bulunan ${v.restaurante} restoranına biniş kartlarını göstererek öğle yemeği alabilirler. İlginiz için teşekkür ederiz!`,
+    }},
+
+  { id:'equipaje', icon:'🎒', title:'Equipaje de mano',
+    fields:[],
+    tpl:{
+      es:()=>`Su atención por favor, señores pasajeros. Se les recuerda que para el embarque en cabina económica solo está permitido un equipaje de mano y un artículo personal. De igual manera es importante mantener a la mano pase de abordo y pasaporte, al momento del embarque, para ser chequeado por nuestro personal.`,
+      en:()=>`Your attention please, dear passengers. We remind you that only one carry-on bag and one personal item are allowed for boarding in Economy Class. Please also keep your boarding pass and passport on hand for verification by our staff during boarding.`,
+      zh:()=>`各位旅客请注意,提醒您经济舱旅客登机仅允许携带一件手提行李及一件个人物品。请随身携带登机牌及护照,以便工作人员在登机时查验。`,
+      ar:()=>`عناية حضرات الركاب، نذكركم بأنه يُسمح لركاب الدرجة السياحية باصطحاب حقيبة يد واحدة وقطعة شخصية واحدة فقط عند الصعود إلى الطائرة. كما يرجى إبقاء بطاقة الصعود وجواز السفر في متناول اليد ليتم التحقق منهما من قبل موظفينا عند الصعود.`,
+      tr:()=>`Dikkatinize sunarız, sayın yolcularımız. Ekonomi sınıfı yolcularımızın binişte yalnızca bir adet kabin bagajı ve bir adet kişisel eşya taşımasına izin verildiğini hatırlatırız. Ayrıca biniş sırasında personelimiz tarafından kontrol edilebilmesi için biniş kartınızı ve pasaportunuzu hazır bulundurmanızı rica ederiz.`,
+    }},
+
+  { id:'coches', icon:'🍼', title:'Coches (cochecitos)',
+    fields:[{k:'puerta',l:'Puerta',d:'23'}],
+    tpl:{
+      es:v=>`Su atención por favor, pasajeros de Turkish Airlines. Se le agradece a los pasajeros viajando con coches, identificarse con personal de la aerolínea en la puerta ${v.puerta}.`,
+      en:v=>`Your attention please, Turkish Airlines passengers. Passengers traveling with strollers are kindly asked to identify themselves to airline staff at gate ${v.puerta}.`,
+      zh:v=>`各位土耳其航空旅客请注意,携带婴儿车出行的旅客请前往${v.puerta}号登机口向航空公司工作人员登记。`,
+      ar:v=>`عناية ركاب الخطوط الجوية التركية، يُرجى من الركاب المسافرين مع عربات الأطفال التعريف عن أنفسهم لدى موظفي شركة الطيران عند البوابة رقم ${v.puerta}.`,
+      tr:v=>`Dikkatinize sunarız, Turkish Airlines yolcuları. Bebek arabası ile seyahat eden yolcularımızın ${v.puerta} numaralı kapıda havayolu personeline kendilerini tanıtmaları rica olunur.`,
+    }},
+
+  { id:'sillas', icon:'♿', title:'Embarque de sillas',
+    fields:[],
+    tpl:{
+      es:()=>`Hemos comenzado a embarcar a los pasajeros viajando con servicios especiales, favor tener a la mano pase de abordo y pasaporte para ser chequeado por nuestro personal.`,
+      en:()=>`We have begun boarding passengers traveling with special assistance services. Please have your boarding pass and passport ready for verification by our staff.`,
+      zh:()=>`我们已开始为需要特殊服务的旅客办理登机手续,请准备好登机牌和护照,以便工作人员查验。`,
+      ar:()=>`بدأنا الآن بصعود الركاب المسافرين ضمن خدمات المساعدة الخاصة، يرجى تجهيز بطاقة الصعود وجواز السفر للتحقق من قبل موظفينا.`,
+      tr:()=>`Özel hizmet gerektiren yolcularımızın biniş işlemine başladık. Lütfen personelimiz tarafından kontrol edilebilmesi için biniş kartınızı ve pasaportunuzu hazır bulundurunuz.`,
+    }},
+
+  { id:'business', icon:'💼', title:'Embarque de business',
+    fields:[],
+    tpl:{
+      es:()=>`Hemos comenzado a embarcar a los pasajeros viajando en cabina business. Favor tener a la mano pase de abordo y pasaporte para ser chequeado por nuestro personal.`,
+      en:()=>`We have begun boarding passengers traveling in Business Class. Please have your boarding pass and passport ready for verification by our staff.`,
+      zh:()=>`我们已开始为商务舱旅客办理登机手续,请准备好登机牌和护照,以便工作人员查验。`,
+      ar:()=>`بدأنا الآن بصعود الركاب المسافرين على درجة الأعمال، يرجى تجهيز بطاقة الصعود وجواز السفر للتحقق من قبل موظفينا.`,
+      tr:()=>`Business sınıfı yolcularımızın biniş işlemine başladık. Lütfen personelimiz tarafından kontrol edilebilmesi için biniş kartınızı ve pasaportunuzu hazır bulundurunuz.`,
+    }},
+
+  { id:'filas', icon:'🔢', title:'Embarque por filas',
+    fields:[{k:'filaA',l:'Desde fila',d:'40'},{k:'filaB',l:'Hasta fila',d:'30'}],
+    tpl:{
+      es:v=>`Hemos comenzado a embarcar a los pasajeros viajando entre las filas de asientos, ${v.filaA}, y, ${v.filaB}. Por favor mantener a la mano pase de abordaje y pasaporte para ser chequeado por nuestro personal.`,
+      en:v=>`We have begun boarding passengers seated between rows ${v.filaA} and ${v.filaB}. Please have your boarding pass and passport ready for verification by our staff.`,
+      zh:v=>`我们已开始为${v.filaA}排至${v.filaB}排之间座位的旅客办理登机手续,请准备好登机牌和护照,以便工作人员查验。`,
+      ar:v=>`بدأنا الآن بصعود الركاب الجالسين بين الصفين ${v.filaA} و ${v.filaB}. يرجى تجهيز بطاقة الصعود وجواز السفر للتحقق من قبل موظفينا.`,
+      tr:v=>`${v.filaA} ile ${v.filaB} sıraları arasındaki koltuklarda oturan yolcularımızın biniş işlemine başladık. Lütfen personelimiz tarafından kontrol edilebilmesi için biniş kartınızı ve pasaportunuzu hazır bulundurunuz.`,
+    }},
+];
+
+const $ = s => document.querySelector(s);
+function safeGet(key, fallback){ try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch(e){ return fallback; } }
+function safeSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+let currentId = null;
+let currentLang = (()=>{ try{ return localStorage.getItem('tk_lang') || 'es'; }catch(e){ return 'es'; } })();
+let favs = safeGet('tk_favs', []);
+let hist = safeGet('tk_hist', []);
+
+function renderLangRow(){
+  $('#a-langRow').innerHTML = LANGS.map(l=>`<button class="a-lang ${l.code===currentLang?'active':''}" data-lang="${l.code}">${l.label}</button>`).join('');
+  $('#a-langRow').querySelectorAll('[data-lang]').forEach(b=>b.addEventListener('click', ()=>{
+    currentLang = b.dataset.lang;
+    try{ localStorage.setItem('tk_lang', currentLang); }catch(e){}
+    renderLangRow(); renderPreview();
+  }));
+}
+function renderGrid(){
+  $('#a-grid').innerHTML = ANN.map(a => `
+    <div class="a-card ${a.id===currentId?'active':''}" data-id="${a.id}" role="button" tabindex="0">
+      <button class="a-star ${favs.includes(a.id)?'on':''}" data-fav="${a.id}" aria-label="Favorito">${favs.includes(a.id)?'★':'☆'}</button>
+      <div class="ic">${a.icon}</div>
+      <div class="t">${a.title}</div>
+    </div>`).join('');
+  $('#a-grid').querySelectorAll('.a-card').forEach(c=>c.addEventListener('click', e=>{
+    if(e.target.closest('.a-star')) return;
+    selectAnn(c.dataset.id);
+  }));
+  $('#a-grid').querySelectorAll('[data-fav]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); toggleFav(b.dataset.fav); }));
+  renderFavRow();
+}
+function renderFavRow(){
+  const sec=$('#a-favSection');
+  if(!favs.length){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  $('#a-favRow').innerHTML = favs.map(id=>{ const a=ANN.find(x=>x.id===id); return a?`<button class="a-fav-chip" data-id="${id}">${a.icon} ${a.title}</button>`:''; }).join('');
+  $('#a-favRow').querySelectorAll('[data-id]').forEach(b=>b.addEventListener('click',()=>selectAnn(b.dataset.id)));
+}
+function toggleFav(id){
+  favs = favs.includes(id) ? favs.filter(x=>x!==id) : [...favs, id];
+  safeSet('tk_favs', favs); renderGrid();
+  if(currentId===id) updateFavToggle();
+}
+function updateFavToggle(){
+  const on = favs.includes(currentId);
+  $('#a-favToggle').textContent = on ? '★' : '☆';
+  $('#a-favToggle').className = 'a-sq' + (on ? ' on' : '');
+}
+function selectAnn(id){
+  currentId = id;
+  const a = ANN.find(x=>x.id===id);
+  renderGrid();
+  $('#a-panel').classList.add('show');
+  $('#a-panelTitle').textContent = a.icon + ' ' + a.title;
+  $('#a-fieldsContainer').innerHTML = a.fields.map(f=>`
+    <div class="a-field"><label>${f.l}</label><input id="a-f-${f.k}" value="${f.d}" placeholder="${f.l}"></div>`).join('');
+  a.fields.forEach(f=>$('#a-f-'+f.k).addEventListener('input', renderPreview));
+  updateFavToggle(); renderLangRow(); renderPreview();
+  $('#a-panel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function currentText(){
+  const a = ANN.find(x=>x.id===currentId);
+  const vals = {};
+  a.fields.forEach(f=> vals[f.k] = ($('#a-f-'+f.k)?.value ?? f.d));
+  const tplFn = a.tpl[currentLang] || a.tpl.es;
+  return { a, text: tplFn(vals) };
+}
+function renderPreview(){
+  const board = $('#a-previewText');
+  board.textContent = currentText().text;
+  const li = LANGS.find(l=>l.code===currentLang);
+  board.style.direction = li && li.rtl ? 'rtl' : 'ltr';
+  board.style.textAlign = li && li.rtl ? 'right' : 'left';
+}
+
+/* Voz */
+const NO_AUDIO_MSG = '⚠️ No se detectó audio. Revisa que el teléfono no esté en silencio y que tenga un motor de voz instalado (Ajustes → Sistema → Idioma → Salida de texto a voz). Si usas la página en un navegador, ábrela en Chrome o Safari.';
+let voicesCache = [];
+let selectedVoiceURI = safeGet('tk_voice', '');
+function populateVoiceSelect(){
+  const sel=$('#a-voiceSelect');
+  if(!sel || !voicesCache.length) return;
+  const esFirst=[...voicesCache].sort((a,b)=>(/^es/i.test(b.lang))-(/^es/i.test(a.lang)));
+  sel.innerHTML='<option value="">Automático (español)</option>'+esFirst.map(v=>`<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`).join('');
+  if(voicesCache.some(v=>v.voiceURI===selectedVoiceURI)) sel.value=selectedVoiceURI;
+}
+function loadVoices(){ try{ voicesCache = speechSynthesis.getVoices() || []; populateVoiceSelect(); }catch(e){} }
+loadVoices();
+if('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined){ speechSynthesis.onvoiceschanged = loadVoices; }
+function pickVoiceForLang(langPrefix){
+  if(!voicesCache.length) loadVoices();
+  if(selectedVoiceURI){
+    const chosen = voicesCache.find(v=>v.voiceURI===selectedVoiceURI);
+    if(chosen && chosen.lang && chosen.lang.toLowerCase().startsWith(langPrefix)) return chosen;
+  }
+  return voicesCache.find(v=>v.lang && v.lang.toLowerCase().startsWith(langPrefix)) || null;
+}
+function setStatus(msg, id){ const el=document.getElementById(id||'a-panelStatus'); if(el) el.textContent=msg; }
+
+let speakQueue = [];
+let currentUtterance = null;
+let audioConfirmed = false;
+function setPlayingState(on){
+  $('#a-playBtn').textContent = on ? '⏸ Reproduciendo…' : '🔊 Reproducir anuncio';
+  $('#a-stopBtn').style.display = on ? 'inline-flex' : 'none';
+}
+function speakNextChunk(statusId, langPrefix, speechTag){
+  langPrefix = langPrefix || 'es'; speechTag = speechTag || 'es-ES';
+  const isMain = statusId === 'a-panelStatus';
+  if(!speakQueue.length){ if(isMain) setPlayingState(false); return; }
+  const chunk = speakQueue.shift();
+  const u = new SpeechSynthesisUtterance(chunk);
+  const voice = pickVoiceForLang(langPrefix);
+  if(voice) u.voice = voice;
+  u.lang = voice ? voice.lang : speechTag;
+  u.rate = 0.95; u.volume = 1;
+  let started = false;
+  u.onstart = ()=>{ started = true; audioConfirmed = true; setStatus('🔊 Reproduciendo…', statusId); };
+  u.onend   = ()=>{ setStatus(speakQueue.length ? '🔊 Reproduciendo…' : '✅ Listo.', statusId); speakNextChunk(statusId, langPrefix, speechTag); };
+  u.onerror = ()=>{ if(!started) setStatus(NO_AUDIO_MSG, statusId); speakNextChunk(statusId, langPrefix, speechTag); };
+  currentUtterance = u;
+  speechSynthesis.speak(u);
+  setTimeout(()=>{
+    if(!started && !audioConfirmed){ setStatus(NO_AUDIO_MSG, statusId); if(isMain) setPlayingState(false); speakQueue=[]; try{speechSynthesis.cancel();}catch(e){} }
+  }, 1300);
+}
+function speakAnnouncement(text, statusId, langPrefix, speechTag){
+  if(!('speechSynthesis' in window)){
+    setStatus('⚠️ Este dispositivo no soporta síntesis de voz.', statusId);
+    return;
+  }
+  setStatus('Cargando voz…', statusId);
+  const chunks = text.split(/(?<=[.!?。！？؟])\s*/).filter(Boolean);
+  const start = ()=>{ speakQueue = chunks; setPlayingState(true); speakNextChunk(statusId, langPrefix, speechTag); };
+  if(speechSynthesis.speaking || speechSynthesis.pending){ speechSynthesis.cancel(); setTimeout(start, 80); }
+  else start();
+}
+$('#a-playBtn').addEventListener('click', ()=>{
+  if(!currentId) return;
+  const { a, text } = currentText();
+  const li = LANGS.find(l=>l.code===currentLang) || LANGS[0];
+  speakAnnouncement(text, 'a-panelStatus', currentLang, li.speech);
+  hist = [{ title:`${a.title} (${li.label})`, text, time:new Date().toLocaleString('es-ES') }, ...hist].slice(0,30);
+  safeSet('tk_hist', hist);
+});
+$('#a-stopBtn').addEventListener('click', ()=>{ speakQueue=[]; try{ speechSynthesis.cancel(); }catch(e){} setPlayingState(false); });
+$('#a-favToggle').addEventListener('click', ()=>{ if(currentId) toggleFav(currentId); });
+$('#a-testCard').addEventListener('click', ()=>{
+  if(!('speechSynthesis' in window)){ setStatus('⚠️ Este visor no soporta síntesis de voz.', 'a-ttsStatus'); return; }
+  speechSynthesis.cancel();
+  speakQueue = ['Prueba de sonido, uno, dos, tres.'];
+  setStatus('Cargando voz…', 'a-ttsStatus');
+  speakNextChunk('a-ttsStatus', 'es', 'es-ES');
+});
+$('#a-voiceSelect').addEventListener('change', e=>{ selectedVoiceURI = e.target.value; safeSet('tk_voice', selectedVoiceURI); });
+
+$('#a-histBtn').addEventListener('click', ()=>{
+  $('#a-histList').innerHTML = hist.length ? hist.map(h=>`
+    <div class="hist-item"><div class="h-title">${h.title}</div><div class="h-time">${h.time}</div><div class="h-text">${h.text}</div></div>`).join('')
+    : '<div class="a-empty">Aún no se han reproducido anuncios.</div>';
+  $('#a-histPanel').classList.add('show');
+});
+$('#a-histClose').addEventListener('click', ()=> $('#a-histPanel').classList.remove('show'));
+$('#a-histPanel').addEventListener('click', e=>{ if(e.target.id==='a-histPanel') $('#a-histPanel').classList.remove('show'); });
+
+renderGrid();
+return {};
+})();
+
+/* ═════════ NAVEGACIÓN POR PESTAÑAS ═════════ */
+const TABS = ['report','cierre','anuncios'];
+function showTab(id){
+  if(!TABS.includes(id)) id='report';
+  TABS.forEach(t=>{ $$('v-'+t).classList.toggle('on', t===id); $$('t-'+t).classList.toggle('on', t===id); });
+  $$('fids-report').style.display = id==='report' ? 'flex' : 'none';
+  $$('fids-cierre').style.display = id==='cierre' ? 'flex' : 'none';
+  try{ localStorage.setItem('tk_tab', id); }catch(e){}
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click', ()=>showTab(b.dataset.tab)));
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+showTab((()=>{ try{ return localStorage.getItem('tk_tab'); }catch(e){ return null; } })() || 'report');
+</script>
+</body>
+</html>

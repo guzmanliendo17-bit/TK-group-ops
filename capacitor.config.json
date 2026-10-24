@@ -1,0 +1,7 @@
+{
+  "appId": "com.tkgroundops.ccs",
+  "appName": "TK Ground Ops",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
+}
